@@ -1,0 +1,23 @@
+[workspace]
+members = ["shared", "storage-adapter"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Genius Tech Space"]
+license = "MIT"
+repository = "https://github.com/geniustechspace/geniustechspace-api-contracts"
+
+[workspace.dependencies]
+prost = "0.12"
+tonic = "0.10"
+prost-types = "0.12"
+tokio = { version = "1.35", features = ["full"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"

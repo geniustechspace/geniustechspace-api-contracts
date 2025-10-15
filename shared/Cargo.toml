@@ -1,0 +1,21 @@
+[package]
+name = "shared"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "shared_proto"
+
+[dependencies]
+prost.workspace = true
+tonic.workspace = true
+prost-types.workspace = true
+
+[build-dependencies]
+tonic-build = { version = "0.10", features = ["prost"] }
+
+[lints]
+workspace = true
