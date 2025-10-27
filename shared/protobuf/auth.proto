@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package geniustechspace.shared.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/rpc/status.proto";
+
+// AuthService provides authentication and authorization functionality
+// following enterprise security standards and cloud-native patterns.
+service AuthService {
+  // RegisterUser creates a new user account with the provided credentials
+  rpc RegisterUser (UserRegistrationRequest) returns (UserRegistrationResponse);
+  
+  // LoginUser authenticates a user and returns access/refresh tokens
+  rpc LoginUser (UserLoginRequest) returns (UserLoginResponse);
+  
+  // RefreshToken issues a new access token using a valid refresh token
+  rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+  
+  // LogoutUser invalidates all active sessions for the user
+  rpc LogoutUser (LogoutRequest) returns (google.protobuf.Empty);
+  
+  // ValidateToken checks if a token is valid and returns its claims
+  rpc ValidateToken (ValidateTokenRequest) returns (TokenPayload);
+  
+  // ChangePassword allows users to update their password securely
+  rpc ChangePassword (ChangePasswordRequest) returns (google.rpc.Status);
+}
+
+message UserRegistrationRequest {
+  // Username must be unique and follow the pattern: ^[a-zA-Z0-9_-]{3,32}$
+  string username = 1;
+  // Email must be valid and verified before full account access
+  string email = 2;
+  // Phone number in E.164 format (e.g., +12125551234)
+  optional string phone_number = 3;
+  // Password must meet minimum security requirements
+  string password = 4;
+  // Additional metadata for cloud tracking
+  map<string, string> metadata = 5;
+  // IP address of the registration request
+  string client_ip = 6;
+  // User agent of the registration request
+  string user_agent = 7;
+}
+
+message UserRegistrationResponse {
+  string user_id = 1;
+  User user = 2;
+  AuthToken access_token = 3;
+  AuthToken refresh_token = 4;
+  google.protobuf.Timestamp email_verification_deadline = 5;
+  string tracking_id = 6;
+}
+
+message UserLoginRequest {
+  // Either username, email or phone number is required
+  oneof identifier {
+    string username = 1;
+    string email = 2;
+    string phone_number = 3;
+  }
+  string password = 4;
+  // Additional security measures
+  optional string mfa_code = 5;
+  string client_ip = 6;
+  string user_agent = 7;
+  // Cloud region for token issuing
+  string region = 8;
+}
+
+message UserLoginResponse {
+  User user = 1;
+  AuthToken access_token = 2;
+  AuthToken refresh_token = 3;
+  bool requires_mfa = 4;
+  repeated string permitted_actions = 5;
+  string session_id = 6;
+  google.protobuf.Timestamp last_login = 7;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+  string client_ip = 2;
+  string user_agent = 3;
+}
+
+message RefreshTokenResponse {
+  AuthToken access_token = 1;
+  AuthToken refresh_token = 2;
+  google.protobuf.Timestamp token_issued_at = 3;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+  bool logout_all_devices = 2;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+  optional string mfa_code = 3;
+}
+
+message AuthToken {
+  string type = 1; // access, refresh, etc.
+  string token = 2;
+  google.protobuf.Timestamp issued_at = 3;
+  google.protobuf.Timestamp expiry = 4;
+  string issuer = 5;
+  repeated string audiences = 6;
+  string session_id = 7;
+}
+
+message TokenPayload {
+  string user_id = 1;
+  string token_id = 2;
+  repeated string scopes = 3;
+  google.protobuf.Timestamp expiry = 4;
+  string issuer = 5;
+  repeated string audiences = 6;
+  string client_ip = 7;
+  string user_agent = 8;
+  map<string, string> claims = 9;
+}
+
+message User {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  optional string phone_number = 4;
+  bool email_verified = 5;
+  bool phone_verified = 6;
+  AccountStatus status = 7;
+  repeated string roles = 8;
+  map<string, string> metadata = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  google.protobuf.Timestamp last_login = 12;
+  optional google.protobuf.Timestamp password_changed_at = 13;
+  string created_region = 14;
+}
+
+enum AccountStatus {
+  ACCOUNT_STATUS_UNSPECIFIED = 0;
+  ACCOUNT_STATUS_ACTIVE = 1;
+  ACCOUNT_STATUS_INACTIVE = 2;
+  ACCOUNT_STATUS_SUSPENDED = 3;
+  ACCOUNT_STATUS_PENDING_VERIFICATION = 4;
+  ACCOUNT_STATUS_LOCKED = 5;
+}

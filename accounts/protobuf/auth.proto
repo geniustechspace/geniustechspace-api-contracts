@@ -1,0 +1,312 @@
+syntax = "proto3";
+
+package geniustechspace.accounts.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "geniustechspace/shared/protobuf/audit.proto";
+
+// AuthCredential represents authentication credentials for a user
+// Supports multiple auth providers (local, OAuth, SAML, etc.)
+message AuthCredential {
+  // Unique identifier for this auth credential (UUID format)
+  string id = 1;
+  
+  // Reference to the user this credential belongs to
+  string user_id = 2;
+    
+  // Authentication provider type
+  AuthProvider provider = 3;
+  
+  // Unique identifier from the provider's perspective
+  // For local: email/phone/username
+  // For OAuth: provider's user ID (e.g., Google sub, GitHub ID)
+  string provider_user_id = 4;
+  
+  // Password hash (only for local provider)
+  // Should be empty for OAuth/social providers
+  string password_hash = 5;
+  
+  // Provider-specific metadata (tokens, otp, totp, etc.)
+  map<string, string> provider_metadata = 6;
+  
+  // Credential status
+  AuthCredentialStatus status = 7;
+  string status_reason = 8;
+  
+  // Security tracking
+  google.protobuf.Timestamp last_used_at = 9;
+  string last_used_ip = 10;
+  int32 failed_attempts = 11;
+  google.protobuf.Timestamp locked_until = 12;
+  
+  // Verification status
+  bool verified = 13;
+  google.protobuf.Timestamp verified_at = 14;
+  
+  // Audit fields
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  google.protobuf.Timestamp deleted_at = 17;
+  
+  // Version control
+  int64 version = 18;
+}
+
+// AuthProvider defines supported authentication providers
+enum AuthProvider {
+  AUTH_PROVIDER_UNSPECIFIED = 0;
+  AUTH_PROVIDER_LOCAL = 1;        // Email/password or phone/password
+  AUTH_PROVIDER_GOOGLE = 2;       // Google OAuth
+  AUTH_PROVIDER_APPLE = 3;        // Apple Sign In
+  AUTH_PROVIDER_GITHUB = 4;       // GitHub OAuth
+  AUTH_PROVIDER_FACEBOOK = 5;     // Facebook OAuth
+  AUTH_PROVIDER_MICROSOFT = 6;    // Microsoft OAuth
+  AUTH_PROVIDER_TWITTER = 7;      // Twitter/X OAuth
+  AUTH_PROVIDER_SAML = 8;         // SAML SSO
+  AUTH_PROVIDER_LDAP = 9;         // LDAP/Active Directory
+  AUTH_PROVIDER_MAGIC_LINK = 10;  // Passwordless magic link
+  AUTH_PROVIDER_WEBAUTHN = 11;    // WebAuthn/FIDO2
+  AUTH_PROVIDER_OTP = 12;         // One-Time Password
+}
+
+// AuthCredentialStatus defines the state of an auth credential
+enum AuthCredentialStatus {
+  AUTH_CREDENTIAL_STATUS_UNSPECIFIED = 0;
+  AUTH_CREDENTIAL_STATUS_ACTIVE = 1;      // Credential is active and usable
+  AUTH_CREDENTIAL_STATUS_INACTIVE = 2;    // Temporarily disabled
+  AUTH_CREDENTIAL_STATUS_LOCKED = 3;      // Locked due to failed attempts
+  AUTH_CREDENTIAL_STATUS_EXPIRED = 4;     // Credential has expired
+  AUTH_CREDENTIAL_STATUS_REVOKED = 5;     // Explicitly revoked
+  AUTH_CREDENTIAL_STATUS_PENDING = 6;     // Awaiting verification
+}
+
+// Session represents an authenticated user session
+message Session {
+  // Unique session identifier (UUID format)
+  string id = 1;
+  
+  // User and credential references
+  string user_id = 2;
+  string auth_credential_id = 3;
+  
+  // Session tokens
+  string access_token = 4;
+  string refresh_token = 5;
+  
+  // Token expiry
+  google.protobuf.Timestamp access_token_expires_at = 6;
+  google.protobuf.Timestamp refresh_token_expires_at = 7;
+  
+  // Session metadata
+  string device_id = 8;
+  string device_name = 9;
+  string user_agent = 10;
+  string ip_address = 11;
+  string country_code = 12;
+  string city = 13;
+  
+  // Session status
+  SessionStatus status = 14;
+  
+  // Timestamps
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp last_activity_at = 16;
+  google.protobuf.Timestamp expires_at = 17;
+  google.protobuf.Timestamp revoked_at = 18;
+  
+  // Additional context
+  map<string, string> metadata = 19;
+}
+
+// SessionStatus defines the state of a session
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_ACTIVE = 1;
+  SESSION_STATUS_EXPIRED = 2;
+  SESSION_STATUS_REVOKED = 3;
+}
+
+// RefreshToken represents a long-lived refresh token
+message RefreshToken {
+  string id = 1;
+  string user_id = 2;
+  string token_hash = 3;
+  string device_id = 4;
+  
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  google.protobuf.Timestamp last_used_at = 7;
+  google.protobuf.Timestamp revoked_at = 8;
+  
+  bool revoked = 9;
+  string revoked_reason = 10;
+}
+
+// PasswordResetToken for password recovery flows
+message PasswordResetToken {
+  string id = 1;
+  string user_id = 2;
+  string token_hash = 3;
+  
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  google.protobuf.Timestamp used_at = 6;
+  
+  bool used = 7;
+  string ip_address = 8;
+}
+
+// EmailVerificationToken for email verification flows
+message EmailVerificationToken {
+  string id = 1;
+  string user_id = 2;
+  string email = 3;
+  string token_hash = 4;
+  
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  google.protobuf.Timestamp verified_at = 7;
+  
+  bool verified = 8;
+  string ip_address = 9;
+}
+
+// MFAMethod represents a multi-factor authentication method
+message MFAMethod {
+  string id = 1;
+  string user_id = 2;
+  
+  MFAMethodType type = 3;
+  
+  // Method-specific data
+  string phone_number = 4;        // For SMS
+  string email = 5;               // For email OTP
+  string totp_secret = 6;         // For TOTP apps
+  bytes webauthn_credential = 7;  // For WebAuthn
+  
+  // Status
+  bool enabled = 8;
+  bool verified = 9;
+  
+  // Backup codes
+  repeated string backup_codes = 10;
+  
+  // Metadata
+  string device_name = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp last_used_at = 13;
+}
+
+// MFAMethodType defines supported MFA methods
+enum MFAMethodType {
+  MFA_METHOD_TYPE_UNSPECIFIED = 0;
+  MFA_METHOD_TYPE_TOTP = 1;       // Time-based OTP (Google Authenticator, etc.)
+  MFA_METHOD_TYPE_SMS = 2;        // SMS-based OTP
+  MFA_METHOD_TYPE_EMAIL = 3;      // Email-based OTP
+  MFA_METHOD_TYPE_WEBAUTHN = 4;   // Hardware keys (YubiKey, etc.)
+  MFA_METHOD_TYPE_BACKUP_CODE = 5;// Backup recovery codes
+}
+
+// AuthEvent represents authentication-related events for audit
+message AuthEvent {
+  string id = 1;
+  string user_id = 2;
+  string auth_credential_id = 3;
+  
+  AuthEventType event_type = 4;
+  
+  // Event details
+  bool success = 5;
+  string failure_reason = 6;
+  
+  // Context
+  string ip_address = 7;
+  string user_agent = 8;
+  string country_code = 9;
+  string city = 10;
+  
+  // Timestamp
+  google.protobuf.Timestamp occurred_at = 11;
+  
+  // Additional context
+  map<string, string> metadata = 12;
+}
+
+// AuthEventType defines types of authentication events
+enum AuthEventType {
+  AUTH_EVENT_TYPE_UNSPECIFIED = 0;
+  AUTH_EVENT_TYPE_LOGIN_SUCCESS = 1;
+  AUTH_EVENT_TYPE_LOGIN_FAILURE = 2;
+  AUTH_EVENT_TYPE_LOGOUT = 3;
+  AUTH_EVENT_TYPE_PASSWORD_CHANGE = 4;
+  AUTH_EVENT_TYPE_PASSWORD_RESET_REQUEST = 5;
+  AUTH_EVENT_TYPE_PASSWORD_RESET_COMPLETE = 6;
+  AUTH_EVENT_TYPE_MFA_ENABLED = 7;
+  AUTH_EVENT_TYPE_MFA_DISABLED = 8;
+  AUTH_EVENT_TYPE_MFA_CHALLENGE_SUCCESS = 9;
+  AUTH_EVENT_TYPE_MFA_CHALLENGE_FAILURE = 10;
+  AUTH_EVENT_TYPE_TOKEN_REFRESH = 11;
+  AUTH_EVENT_TYPE_SESSION_REVOKED = 12;
+  AUTH_EVENT_TYPE_CREDENTIAL_ADDED = 13;
+  AUTH_EVENT_TYPE_CREDENTIAL_REMOVED = 14;
+  AUTH_EVENT_TYPE_ACCOUNT_LOCKED = 15;
+  AUTH_EVENT_TYPE_ACCOUNT_UNLOCKED = 16;
+}
+
+// Query messages for filtering and pagination
+
+message AuthCredentialQuery {
+  string user_id = 1;
+  repeated AuthProvider providers = 2;
+  repeated AuthCredentialStatus statuses = 3;
+  bool verified_only = 4;
+  
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message SessionQuery {
+  string user_id = 1;
+  repeated SessionStatus statuses = 2;
+  string device_id = 3;
+  bool active_only = 4;
+  
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message AuthEventQuery {
+  string user_id = 1;
+  repeated AuthEventType event_types = 2;
+  google.protobuf.Timestamp from_date = 3;
+  google.protobuf.Timestamp to_date = 4;
+  bool success_only = 5;
+  
+  int32 page_size = 6;
+  string page_token = 7;
+}
+
+// List response messages
+
+message AuthCredentialList {
+  repeated AuthCredential credentials = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message SessionList {
+  repeated Session sessions = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message AuthEventList {
+  repeated AuthEvent events = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message MFAMethodList {
+  repeated MFAMethod methods = 1;
+  int32 total_count = 2;
+}

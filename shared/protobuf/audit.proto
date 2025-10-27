@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package geniustechspace.shared.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+
+// AuditTimestamps captures detailed timestamps for resource lifecycle events
+message AuditTimestamps {
+  google.protobuf.Timestamp created_at = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  google.protobuf.Timestamp deleted_at = 3; // Soft delete timestamp
+}
+
+// AuditActor captures information about the entity performing an operation
+message AuditActor {
+  string actor_id = 1;        // Unique identifier of the actor
+  ActorType actor_type = 2;   // Type of the actor
+  string display_name = 3;    // Human-readable name of the actor
+}
+
+// AuditMetadata contains comprehensive audit trail information for resources
+// following enterprise compliance and security standards
+message AuditMetadata extends AuditTimestamp {
+  // Actor information
+  ActorInfo actor_info = 4;
+  
+  // Versioning and concurrency
+  int64 version = 7;  // Incremental version for optimistic concurrency control
+  string etag = 8;    // Entity tag for cache control
+  
+  // Geographic and network context
+  string region = 9;          // Cloud region where the operation occurred
+  string source_ip = 10;      // IP address of the client
+  string user_agent = 11;     // User agent of the client
+  
+  // Operation context
+  string correlation_id = 12;  // Request correlation ID for tracing
+  string operation_id = 13;    // Unique identifier for the operation
+  string service_name = 14;    // Name of the service that performed the operation
+  
+  // Security context
+  repeated string roles = 15;        // Roles of the actor at operation time
+  repeated string permissions = 16;   // Effective permissions at operation time
+  
+  // Compliance and regulatory
+  map<string, string> compliance_tags = 17;  // Tags for compliance tracking
+  RetentionPolicy retention_policy = 18;     // Data retention policy
+  
+  // Additional context
+  map<string, google.protobuf.Value> metadata = 19;  // Extensible metadata
+  AuditState state = 20;                             // Current state of the resource
+}
+
+// ActorInfo provides detailed information about the entity performing an operation
+message ActorInfo extends AuditActor {
+  string session_id = 4;      // Session identifier if applicable
+  
+  // Additional actor context
+  map<string, string> attributes = 5;     // Actor-specific attributes
+  repeated string scopes = 6;             // OAuth scopes or permissions
+  string authentication_method = 7;        // Method used for authentication
+  google.protobuf.Timestamp auth_time = 8; // Time of authentication
+}
+
+// RetentionPolicy defines how long the data should be retained
+message RetentionPolicy {
+  google.protobuf.Timestamp expiry_date = 1;    // When the data should expire
+  RetentionType retention_type = 2;             // Type of retention policy
+  bool legal_hold = 3;                          // Whether legal hold is active
+  string policy_id = 4;                         // ID of the applied policy
+  map<string, string> policy_attributes = 5;     // Additional policy attributes
+}
+
+// ActorType defines the type of entity performing an operation
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_USER = 1;
+  ACTOR_TYPE_SYSTEM = 2;
+  ACTOR_TYPE_AUTOMATED_PROCESS = 3;
+  ACTOR_TYPE_EXTERNAL_SERVICE = 4;
+}
+
+// RetentionType defines different types of retention policies
+enum RetentionType {
+  RETENTION_TYPE_UNSPECIFIED = 0;
+  RETENTION_TYPE_REGULATORY = 1;
+  RETENTION_TYPE_LEGAL = 2;
+  RETENTION_TYPE_BUSINESS = 3;
+  RETENTION_TYPE_TEMPORARY = 4;
+}
+
+// AuditState represents the current state of the audited resource
+enum AuditState {
+  AUDIT_STATE_UNSPECIFIED = 0;
+  AUDIT_STATE_ACTIVE = 1;
+  AUDIT_STATE_INACTIVE = 2;
+  AUDIT_STATE_DELETED = 3;
+  AUDIT_STATE_ARCHIVED = 4;
+  AUDIT_STATE_PENDING_DELETION = 5;
+}

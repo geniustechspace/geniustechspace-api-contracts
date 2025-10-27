@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package geniustechspace.accounts.user.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+
+import "geniustechspace/shared/protobuf/audit.proto";
+
+
+// User represents a human identity within the system.
+// It captures personal details, account status, roles, and metadata.
+message User {
+  // Unique identifier for the user (UUID format).
+  required string id = 1;
+  
+  // Personal information
+  required string given_name = 2;  // First name
+  required string family_name = 3; // Last name
+  string middle_name = 4; // Middle name(s) or other names
+  // Display name for UI presentation. If not provided, system will generate one.
+  required string display_name = 5;
+
+  // Contact information
+  string primary_email = 9;         // Primary email for communications
+  string primary_phone = 10;        // Primary phone for communications
+  bool email_verified = 11;
+  bool phone_verified = 12;
+  
+  // Profile information
+  google.type.Date date_of_birth = 6; // ISO 8601 format (YYYY-MM-DD)
+  string avatar_url = 14;
+  string timezone = 15;
+  string country_code = 16;
+  string language_code = 17;
+  string locale = 18;
+  
+  // User lifecycle state
+  required UserStatus status = 7;
+  string status_reason = 21;
+
+  // User account roles
+  repeated string roles = 11;
+  
+  // Audit fields
+  google.protobuf.Timestamp created_at = 29;
+  google.protobuf.Timestamp updated_at = 30;
+  google.protobuf.Timestamp deleted_at = 31; // Soft delete timestamp
+  AuditActor created_by = 17;
+  AuditActor updated_by = 18;
+  AuditActor deleted_by = 19;
+
+  // Version control
+  int64 version = 34;
+  
+  // Custom attributes for extensibility and custom implementations
+  map<string, string> metadata = 20;
+  map<string, string> labels = 36;
+}
+
+// UserStatus defines the possible states of a user account in the system
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_DRAFT = 1;      // User created but not yet activated
+  USER_STATUS_ACTIVE = 2;     // User is active and can access the system
+  USER_STATUS_INACTIVE = 3;   // User is temporarily disabled
+  USER_STATUS_SUSPENDED = 4;  // User access suspended due to policy violation
+  USER_STATUS_DEACTIVATED = 5; // User voluntarily deactivated account
+  USER_STATUS_DELETED = 6;    // User marked for deletion (soft delete)
+}
+
+// UserQuery represents filters for user searches
+message UserQuery {
+  string tenant_id = 1;
+  repeated UserStatus statuses = 2;
+  repeated UserType types = 3;
+  string email_contains = 4;
+  string name_contains = 5;
+  int32 page_size = 6;
+  string page_token = 7;
+}
+
+// UserList represents a paginated list of users
+message UserList {
+  repeated User users = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
